@@ -29,7 +29,7 @@ init.pt-query-digest:
 	rm -rf ./percona-toolkit-3.6.0
 
 truncate:
-	rm $(PERF_DATA_DIR)/*
+	rm $(PERF_DATA_DIR)/* || true
 	truncate -s 0 ./webapp/nginx/log/access.log
 	truncate -s 0 ./webapp/mysql/log/slow.log
 
