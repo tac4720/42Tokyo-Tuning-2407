@@ -28,8 +28,11 @@ init.pt-query-digest:
 	sudo mv ./percona-toolkit-3.6.0/bin/pt-query-digest /usr/local/bin/pt-query-digest
 	rm -rf ./percona-toolkit-3.6.0
 
+truncate:
+	rm $(PERF_DATA_DIR)/* ./webapp/mysql/log/* ./webapp/nginx/log/*
+
 # measure performance
-measure: measure.alp
+measure: truncate measure.alp
 m: measure
 
 measure.alp:
