@@ -310,7 +310,7 @@ async fn get_paginated_orders_with_details(
     }
 
     async fn get_order_by_id(&self, id: i32) -> Result<OrderDto, sqlx::Error> {
-        let sql = format!(
+        let sql = 
             "SELECT 
                 o.id, 
                 o.client_id, 
@@ -341,8 +341,7 @@ async fn get_paginated_orders_with_details(
                 tow_trucks t ON o.tow_truck_id = t.id
             LEFT JOIN
                 users dr ON t.driver_id = dr.id
-            WHERE o.id = $1"
-        );
+            WHERE o.id = ?".to_string();
 
         let order = sqlx::query_as::<_, OrderDto>(&sql)
             .bind(id)

@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use crate::domains::dto::order::OrderWithDetails;
-use tokio::try_join;
 
 use super::{
     auth_service::AuthRepository,
@@ -97,74 +96,17 @@ impl<
     }
 
 pub async fn get_order_by_id(&self, id: i32) -> Result<OrderDto, AppError> {
-    // Orderを取得
-    let order = self.order_repository.find_order_by_id(id).await?;
-    
-    // まとめてIDを取得
-    let client_id = order.client_id;
-    let dispatcher_id = order.dispatcher_id;
-    let tow_truck_id = order.tow_truck_id;
-
-    // Clientの情報を取得
-    let client_future = self.auth_repository.find_user_by_id(client_id);
-
-    // Dispatcherとそのユーザー情報を取得
-    let dispatcher_future = async {
-        if let Some(dispatcher_id) = dispatcher_id {
-            let dispatcher = self.auth_repository.find_dispatcher_by_id(dispatcher_id).await?.unwrap();
-            let dispatcher_user = self.auth_repository.find_user_by_id(dispatcher.user_id).await?;
-            Ok(Some((dispatcher, dispatcher_user)))
-        } else {
-            Ok(None)
-        }
-    };
-
-    // Tow Truckとそのドライバー情報を取得
-    let tow_truck_future = async {
-        if let Some(tow_truck_id) = tow_truck_id {
-            let tow_truck = self.tow_truck_repository.find_tow_truck_by_id(tow_truck_id).await?.unwrap();
-            let driver_user = self.auth_repository.find_user_by_id(tow_truck.driver_id).await?;
-            Ok(Some((tow_truck, driver_user)))
-        } else {
-            Ok(None)
-        }
-    };
-
-    // Area IDを取得
-    let area_id_future = self.map_repository.get_area_id_by_node_id(order.node_id);
-
-    // 全てのFutureを並行して実行
-    let (client, dispatcher_result, tow_truck_result, area_id) = try_join!(
-        client_future,
-        dispatcher_future,
-        tow_truck_future,
-        area_id_future
-    )?;
-
-    // 各結果を分解
-    let client_username = client.unwrap().username;
-    
-    let (dispatcher_user_id, dispatcher_username) = if let Some((dispatcher, dispatcher_user)) = dispatcher_result {
-        (Some(dispatcher.user_id), Some(dispatcher_user.unwrap().username))
-    } else {
-        (None, None)
-    };
-
-    let (driver_user_id, driver_username) = if let Some((tow_truck, driver_user)) = tow_truck_result {
-        (Some(tow_truck.driver_id), Some(driver_user.unwrap().username))
-    } else {
-        (None, None)
-    };
+    let order = self.order_repository.get_order_by_id(id).await?;
 
     Ok(OrderDto {
         id: order.id,
         client_id: order.client_id,
-        client_username: Some(client_username),
-        dispatcher_user_id,
-        dispatcher_username,
-        driver_user_id,
-        driver_username,
-        area_id,
+        client_username: order.client_username,
+        dispatcher_user_id: order.dispatcher_user_id,
+        dispatcher_username: order.dispatcher_username,
+        driver_user_id: order.driver_user_id,
+        driver_username: order.driver_username,
+        area_id: order.area_id,
         dispatcher_id: order.dispatcher_id,
         tow_truck_id: order.tow_truck_id,
         status: order.status,
