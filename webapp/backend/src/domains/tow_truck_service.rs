@@ -10,11 +10,11 @@ pub trait TowTruckRepository {
         &self,
         page: i32,
         page_size: i32,
-        status: Option<String>,
+        status: Option<bool>,
         area_id: Option<i32>,
     ) -> Result<Vec<TowTruck>, AppError>;
     async fn update_location(&self, truck_id: i32, node_id: i32) -> Result<(), AppError>;
-    async fn update_status(&self, truck_id: i32, status: &str) -> Result<(), AppError>;
+    async fn update_status(&self, truck_id: i32, status: &bool) -> Result<(), AppError>;
     async fn find_tow_truck_by_id(&self, id: i32) -> Result<Option<TowTruck>, AppError>;
 }
 
@@ -52,7 +52,7 @@ impl<
         &self,
         page: i32,
         page_size: i32,
-        status: Option<String>,
+        status: Option<bool>,
         area: Option<i32>,
     ) -> Result<Vec<TowTruckDto>, AppError> {
         let tow_trucks = self
@@ -86,7 +86,7 @@ impl<
             .await?;
         let tow_trucks = self
             .tow_truck_repository
-            .get_paginated_tow_trucks(0, -1, Some("available".to_string()), Some(area_id))
+            .get_paginated_tow_trucks(0, -1, Some(true), Some(area_id))
             .await?;
 
         let nodes = self.map_repository.get_all_nodes(Some(area_id)).await?;

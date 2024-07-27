@@ -15,7 +15,7 @@ pub struct TowTruckDto {
     pub id: i32,
     pub driver_user_id: i32,
     pub driver_username: Option<String>,
-    pub status: String,
+    pub status: bool,
     pub node_id: i32,
     pub area_id: i32,
 }

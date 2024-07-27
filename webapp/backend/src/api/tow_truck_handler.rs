@@ -13,7 +13,7 @@ use serde::Deserialize;
 pub struct PaginatedTowTruckQuery {
     page: Option<i32>,
     page_size: Option<i32>,
-    status: Option<String>,
+    status: Option<bool>,
     area: Option<i32>,
 }
 

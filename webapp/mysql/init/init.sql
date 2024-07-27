@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS dispatchers (
 CREATE TABLE IF NOT EXISTS tow_trucks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     driver_id INT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'available',
+    status BOOLEAN NOT NULL DEFAULT TRUE, -- TRUE: available, FALSE: busy
     area_id INT NOT NULL
 );
 

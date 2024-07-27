@@ -249,7 +249,7 @@ pub async fn get_paginated_orders(
             .await?;
 
         self.tow_truck_repository
-            .update_status(tow_truck_id, "busy")
+            .update_status(tow_truck_id, &false)
             .await?;
 
         Ok(())

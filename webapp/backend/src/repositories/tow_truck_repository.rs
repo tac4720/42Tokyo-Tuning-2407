@@ -19,13 +19,14 @@ impl TowTruckRepository for TowTruckRepositoryImpl {
         &self,
         page: i32,
         page_size: i32,
-        status: Option<String>,
+        status: Option<bool>,
         area_id: Option<i32>,
     ) -> Result<Vec<TowTruck>, AppError> {
         let where_clause = match (status, area_id) {
             (Some(status), Some(area_id)) => format!(
                 "WHERE tt.status = '{}' AND tt.area_id = {} AND l.timestamp = (SELECT MAX(timestamp) FROM locations WHERE tow_truck_id = tt.id)",
-                status, area_id
+                if status { "TRUE" } else { "FALSE" },
+                area_id
             ),
             (None, Some(area_id)) => format!(
                 "WHERE tt.area_id = {} AND l.timestamp = (SELECT MAX(timestamp) FROM locations WHERE tow_truck_id = tt.id)",
@@ -33,7 +34,7 @@ impl TowTruckRepository for TowTruckRepositoryImpl {
             ),
             (Some(status), None) => format!(
                 "WHERE tt.status = '{}' AND l.timestamp = (SELECT MAX(timestamp) FROM locations WHERE tow_truck_id = tt.id)",
-                status
+                if status { "TRUE" } else { "FALSE" }
             ),
             (None, None) => "WHERE l.timestamp = (SELECT MAX(timestamp) FROM locations WHERE tow_truck_id = tt.id)"
                 .to_string(),
@@ -89,7 +90,7 @@ impl TowTruckRepository for TowTruckRepositoryImpl {
         Ok(())
     }
 
-    async fn update_status(&self, tow_truck_id: i32, status: &str) -> Result<(), AppError> {
+    async fn update_status(&self, tow_truck_id: i32, status: &bool) -> Result<(), AppError> {
         sqlx::query("UPDATE tow_trucks SET status = ? WHERE id = ?")
             .bind(status)
             .bind(tow_truck_id)

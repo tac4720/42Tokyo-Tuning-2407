@@ -3,3 +3,4 @@
 *.pem
 *.log
 **/node_modules
+init
