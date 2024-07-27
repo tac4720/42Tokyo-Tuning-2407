@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use crate::domains::dto::order::OrderWithDetails;
 
 use super::{
     auth_service::AuthRepository,
@@ -42,6 +43,15 @@ pub trait OrderRepository {
         completed_time: DateTime<Utc>,
     ) -> Result<(), AppError>;
     async fn get_all_completed_orders(&self) -> Result<Vec<CompletedOrder>, AppError>;
+    async fn get_paginated_orders_with_details(
+        &self,
+        page: i32,
+        page_size: i32,
+        sort_by: Option<String>,
+        sort_order: Option<String>,
+        status: Option<String>,
+        area: Option<i32>,
+    ) -> Result<Vec<OrderWithDetails>, AppError>;
 }
 
 #[derive(Debug)]
@@ -168,7 +178,8 @@ impl<
         })
     }
 
-    pub async fn get_paginated_orders(
+// service
+pub async fn get_paginated_orders(
         &self,
         page: i32,
         page_size: i32,
@@ -177,94 +188,30 @@ impl<
         status: Option<String>,
         area: Option<i32>,
     ) -> Result<Vec<OrderDto>, AppError> {
-        let orders = self
+        let orders_with_details = self
             .order_repository
-            .get_paginated_orders(page, page_size, sort_by, sort_order, status, area)
+            .get_paginated_orders_with_details(page, page_size, sort_by, sort_order, status, area)
             .await?;
 
-        let mut results = Vec::new();
-
-        for order in orders {
-            let client_username = self
-                .auth_repository
-                .find_user_by_id(order.client_id)
-                .await
-                .unwrap()
-                .unwrap()
-                .username;
-
-            let dispatcher = match order.dispatcher_id {
-                Some(dispatcher_id) => self
-                    .auth_repository
-                    .find_dispatcher_by_id(dispatcher_id)
-                    .await
-                    .unwrap(),
-                None => None,
-            };
-
-            let (dispatcher_user_id, dispatcher_username) = match dispatcher {
-                Some(dispatcher) => (
-                    Some(dispatcher.user_id),
-                    Some(
-                        self.auth_repository
-                            .find_user_by_id(dispatcher.user_id)
-                            .await
-                            .unwrap()
-                            .unwrap()
-                            .username,
-                    ),
-                ),
-                None => (None, None),
-            };
-
-            let tow_truck = match order.tow_truck_id {
-                Some(tow_truck_id) => self
-                    .tow_truck_repository
-                    .find_tow_truck_by_id(tow_truck_id)
-                    .await
-                    .unwrap(),
-                None => None,
-            };
-
-            let (driver_user_id, driver_username) = match tow_truck {
-                Some(tow_truck) => (
-                    Some(tow_truck.driver_id),
-                    Some(
-                        self.auth_repository
-                            .find_user_by_id(tow_truck.driver_id)
-                            .await
-                            .unwrap()
-                            .unwrap()
-                            .username,
-                    ),
-                ),
-                None => (None, None),
-            };
-
-            let order_area_id = self
-                .map_repository
-                .get_area_id_by_node_id(order.node_id)
-                .await
-                .unwrap();
-
-            results.push(OrderDto {
+        let results: Vec<OrderDto> = orders_with_details.into_iter().map(|order| {
+            OrderDto {
                 id: order.id,
                 client_id: order.client_id,
-                client_username: Some(client_username),
+                client_username: Some(order.client_username),
                 dispatcher_id: order.dispatcher_id,
-                dispatcher_user_id,
-                dispatcher_username,
+                dispatcher_user_id: order.dispatcher_user_id,
+                dispatcher_username: order.dispatcher_username,
                 tow_truck_id: order.tow_truck_id,
-                driver_user_id,
-                driver_username,
-                area_id: order_area_id,
+                driver_user_id: order.driver_user_id,
+                driver_username: order.driver_username,
+                area_id: order.area_id,
                 status: order.status,
                 node_id: order.node_id,
                 car_value: order.car_value,
                 order_time: order.order_time,
                 completed_time: order.completed_time,
-            });
-        }
+            }
+        }).collect();
 
         Ok(results)
     }
