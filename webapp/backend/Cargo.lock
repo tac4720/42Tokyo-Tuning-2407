@@ -351,6 +351,7 @@ dependencies = [
  "pprof",
  "rand",
  "serde",
+ "sha1",
  "sqlx",
  "syn 1.0.109",
  "thiserror",
