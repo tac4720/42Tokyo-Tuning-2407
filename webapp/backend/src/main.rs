@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::fs::File;
 use std::io::Write;
 
 use actix_cors::Cors;
-use actix_web::{web, App, HttpServer};
+use actix_web::{web, App, HttpServer, HttpResponse};
 use api::{
     auth_handler, health_check_handler, map_handler, order_handler, result_handler,
     tow_truck_handler,
@@ -27,6 +27,31 @@ mod middlewares;
 mod models;
 mod repositories;
 mod utils;
+
+#[derive(Clone)]
+struct AppState {
+    profiler: Arc<Mutex<Option<pprof::ProfilerGuard<'static>>>>,
+}
+
+async fn stop_profiler(data: web::Data<AppState>) -> HttpResponse {
+    let mut guard = data.profiler.lock().unwrap();
+    if let Some(g) = guard.take() {
+        if let Ok(report) = g.report().build() {
+            let mut file = File::create("profile.pb").unwrap();
+            let profile = report.pprof().unwrap();
+
+            let mut content = Vec::new();
+            profile.write_to_vec(&mut content).unwrap();
+            file.write_all(&content).unwrap();
+
+            HttpResponse::Ok().body("Profiler stopped and data saved to profile.pb")
+        } else {
+            HttpResponse::InternalServerError().body("Failed to build profiler report")
+        }
+    } else {
+        HttpResponse::BadRequest().body("Profiler is not running")
+    }
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -112,6 +137,10 @@ async fn main() -> std::io::Result<()> {
                             .route(web::get().to(auth_handler::user_profile_image_handler)),
                     )
                     .service(
+                        web::resource("/stop_profiler")
+                            .route(web::post().to(stop_profiler)),
+                    )
+                    .service(
                         web::scope("/tow_truck")
                             .wrap(AuthMiddleware::new(auth_service_for_middleware.clone()))
                             .service(web::resource("/list").route(
@@ -166,12 +195,6 @@ async fn main() -> std::io::Result<()> {
                                     .route(web::put().to(map_handler::update_edge_handler)),
                             ),
                     ),
-                    // .service(
-                    //     web::resource("/start").route(start_profiler),
-                    // )
-                    // .service(
-                    //     web::resource("/stop").route(stop_profiler),
-                    // ),
             )
     })
     .bind(format!("0.0.0.0:{port}"))?

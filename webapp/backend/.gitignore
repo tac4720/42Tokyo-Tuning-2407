@@ -11,5 +11,7 @@ target/
 *.njsproj
 *.sln
 *.sw?
+*.pb
+*.svg
 
 .env.production
