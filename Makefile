@@ -54,3 +54,9 @@ restart.nginx:
 
 restart.mysql:
 	cd webapp && bash restart_container.sh
+
+up:
+	docker compose -f ./webapp/docker-compose.local.yml up -d
+
+down:
+	docker compose -f ./webapp/docker-compose.local.yml down
