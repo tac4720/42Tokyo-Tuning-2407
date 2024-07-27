@@ -1,4 +1,6 @@
 use std::sync::Arc;
+use std::fs::File;
+use std::io::Write;
 
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
@@ -15,6 +17,7 @@ use repositories::auth_repository::AuthRepositoryImpl;
 use repositories::map_repository::MapRepositoryImpl;
 use repositories::order_repository::OrderRepositoryImpl;
 use repositories::tow_truck_repository::TowTruckRepositoryImpl;
+use pprof::protos::Message;
 
 mod api;
 mod domains;
@@ -27,6 +30,8 @@ mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let guard = pprof::ProfilerGuardBuilder::default().frequency(1000).blocklist(&["libc", "libgcc", "pthread", "vdso"]).build().unwrap();
+
     let pool = infrastructure::db::create_pool().await;
     let mut port = 8080;
 
@@ -49,6 +54,18 @@ async fn main() -> std::io::Result<()> {
         MapRepositoryImpl::new(pool.clone()),
     ));
     let map_service = web::Data::new(MapService::new(MapRepositoryImpl::new(pool.clone())));
+
+
+    if let Ok(report) = guard.report().build() {
+        let mut file = File::create("profile.pb").unwrap();
+        let profile = report.pprof().unwrap();
+
+        let mut content = Vec::new();
+        profile.write_to_vec(&mut content).unwrap();
+        file.write_all(&content).unwrap();
+
+        println!("report: {:?}", report);
+    };
 
     HttpServer::new(move || {
         let mut cors = Cors::default();
@@ -149,6 +166,12 @@ async fn main() -> std::io::Result<()> {
                                     .route(web::put().to(map_handler::update_edge_handler)),
                             ),
                     ),
+                    // .service(
+                    //     web::resource("/start").route(start_profiler),
+                    // )
+                    // .service(
+                    //     web::resource("/stop").route(stop_profiler),
+                    // ),
             )
     })
     .bind(format!("0.0.0.0:{port}"))?
