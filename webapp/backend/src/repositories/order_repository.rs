@@ -19,7 +19,7 @@ impl OrderRepository for OrderRepositoryImpl {
     async fn find_order_by_id(&self, id: i32) -> Result<Order, AppError> {
         let order = sqlx::query_as::<_, Order>(
             "SELECT 
-                *
+                id, client_id, dispatcher_id, tow_truck_id, status, node_id, car_value, order_time, completed_time
             FROM
                 orders 
             WHERE
