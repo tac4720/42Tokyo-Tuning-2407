@@ -1,4 +1,5 @@
 use sqlx::MySqlPool;
+use crate::errors::AppError;
 
 use crate::{
     domains::map_service::MapRepository,
@@ -85,7 +86,7 @@ impl MapRepository for MapRepositoryImpl {
         Ok(edges)
     }
 
-    async fn get_area_id_by_node_id(&self, node_id: i32) -> Result<i32, sqlx::Error> {
+    async fn get_area_id_by_node_id(&self, node_id: i32) -> Result<i32, AppError> {
         let area_id = sqlx::query_scalar("SELECT area_id FROM nodes WHERE id = ?")
             .bind(node_id)
             .fetch_one(&self.pool)

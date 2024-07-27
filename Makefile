@@ -38,7 +38,7 @@ measure: measure.alp
 m: measure
 
 measure.alp:
-	cat ./webapp/nginx/log/access.log | alp json --limit 10000 --sort=sum --reverse --query-string --format=table -o count,method,uri,avg,p99,max --matching-groups '/api/user_image/\d+,/api/order/\d+,orders/\d+,/_next.+,__nextjs.+' > $(PERF_DATA_DIR)/alp.log
+	cat ./webapp/nginx/log/access.log | alp json --limit 10000 --sort=sum --reverse --query-string --format=table -o count,method,uri,avg,p99,max --matching-groups '/api/user_image/\d+,/api/order/\d+,/api/order/list/.+,/orders/\d+,/api/tow_truck/nearest.+,/login.+,/_next.+,__nextjs.+' > $(PERF_DATA_DIR)/alp.log
 
 # TODO add pprof configuration to main.rs
 measure.pprof:

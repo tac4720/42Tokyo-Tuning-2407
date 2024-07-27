@@ -6,7 +6,7 @@ use crate::{
 pub trait MapRepository {
     async fn get_all_nodes(&self, area_id: Option<i32>) -> Result<Vec<Node>, sqlx::Error>;
     async fn get_all_edges(&self, area_id: Option<i32>) -> Result<Vec<Edge>, sqlx::Error>;
-    async fn get_area_id_by_node_id(&self, node_id: i32) -> Result<i32, sqlx::Error>;
+    async fn get_area_id_by_node_id(&self, node_id: i32) -> Result<i32, AppError>;
     async fn update_edge(
         &self,
         node_a_id: i32,
