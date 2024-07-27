@@ -80,17 +80,7 @@ async fn main() -> std::io::Result<()> {
     ));
     let map_service = web::Data::new(MapService::new(MapRepositoryImpl::new(pool.clone())));
 
-
-    if let Ok(report) = guard.report().build() {
-        let mut file = File::create("profile.pb").unwrap();
-        let profile = report.pprof().unwrap();
-
-        let mut content = Vec::new();
-        profile.write_to_vec(&mut content).unwrap();
-        file.write_all(&content).unwrap();
-
-        println!("report: {:?}", report);
-    };
+    let profiler = Arc::new(Mutex::new(Some(guard)));
 
     HttpServer::new(move || {
         let mut cors = Cors::default();
@@ -110,6 +100,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(auth_service.clone())
             .app_data(order_service.clone())
             .app_data(map_service.clone())
+            .app_data(web::Data::new(AppState {
+                profiler: profiler.clone(),
+            }))
             .wrap(cors)
             .service(
                 web::scope("/api")
@@ -138,7 +131,7 @@ async fn main() -> std::io::Result<()> {
                     )
                     .service(
                         web::resource("/stop_profiler")
-                            .route(web::post().to(stop_profiler)),
+                            .route(web::get().to(stop_profiler)),
                     )
                     .service(
                         web::scope("/tow_truck")

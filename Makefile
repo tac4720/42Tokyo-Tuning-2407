@@ -34,14 +34,14 @@ truncate:
 	truncate -s 0 ./webapp/mysql/log/slow.log
 
 # measure performance
-measure: measure.alp
+measure: measure.alp measure.pprof measure.query
 m: measure
 
 measure.alp:
 	cat ./webapp/nginx/log/access.log | alp json --limit 10000 --sort=sum --reverse --query-string --format=table -o count,method,uri,avg,p99,max --matching-groups '/api/user_image/\d+,/api/order/\d+,orders/\d+,/_next.+,__nextjs.+' > $(PERF_DATA_DIR)/alp.log
 
-# TODO add pprof configuration to main.rs
 measure.pprof:
+	go tool pprof -svg ./webapp/backend/profile.pb > $(PERF_DATA_DIR)/profile.svg
 
 measure.query:
 	cat ./webapp/mysql/log/slow.log | pt-query-digest > $(PERF_DATA_DIR)/pt-query-digest.log
@@ -54,3 +54,12 @@ restart.nginx:
 
 restart.mysql:
 	cd webapp && bash restart_container.sh
+
+down:
+	cd webapp && docker-compose -f docker-compose.local.yml down
+
+up:
+	cd webapp && docker-compose -f docker-compose.local.yml up -d
+
+stopp:
+	curl -X GET http://localhost/api/stop_profiler
