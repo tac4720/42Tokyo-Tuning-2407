@@ -29,10 +29,12 @@ init.pt-query-digest:
 	rm -rf ./percona-toolkit-3.6.0
 
 truncate:
-	rm $(PERF_DATA_DIR)/* ./webapp/mysql/log/* ./webapp/nginx/log/*
+	rm $(PERF_DATA_DIR)/*
+	truncate -s 0 ./webapp/nginx/log/access.log
+	truncate -s 0 ./webapp/mysql/log/slow.log
 
 # measure performance
-measure: truncate measure.alp
+measure: measure.alp
 m: measure
 
 measure.alp:
@@ -41,7 +43,7 @@ measure.alp:
 # TODO add pprof configuration to main.rs
 measure.pprof:
 
-measure.pt-query-digest:
+measure.query:
 	cat ./webapp/mysql/log/slow.log | pt-query-digest > $(PERF_DATA_DIR)/pt-query-digest.log
 
 restart: restart.nginx restart.mysql

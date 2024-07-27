@@ -1,7 +1,8 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use actix_cors::Cors;
-use actix_web::{web, App, HttpServer};
+use actix_web::{web, App, HttpServer, HttpResponse};
 use api::{
     auth_handler, health_check_handler, map_handler, order_handler, result_handler,
     tow_truck_handler,
@@ -15,6 +16,7 @@ use repositories::auth_repository::AuthRepositoryImpl;
 use repositories::map_repository::MapRepositoryImpl;
 use repositories::order_repository::OrderRepositoryImpl;
 use repositories::tow_truck_repository::TowTruckRepositoryImpl;
+use pprof::ProfilerGuard;
 
 mod api;
 mod domains;
@@ -24,6 +26,8 @@ mod middlewares;
 mod models;
 mod repositories;
 mod utils;
+
+static PROFILING: AtomicBool = AtomicBool::new(false);
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -148,6 +152,14 @@ async fn main() -> std::io::Result<()> {
                                 web::resource("/update_edge")
                                     .route(web::put().to(map_handler::update_edge_handler)),
                             ),
+                    )
+                    .service(
+                        web::resource("/start_profile")
+                            .route(web::post().to(start_profile)),
+                    )
+                    .service(
+                        web::resource("/stop_profile")
+                            .route(web::post().to(stop_profile)),
                     ),
             )
     })
@@ -155,4 +167,30 @@ async fn main() -> std::io::Result<()> {
     .workers(1)
     .run()
     .await
+}
+
+async fn start_profile(profiler: web::Data<Arc<std::sync::Mutex<Option<ProfilerGuard<'static>>>>>) -> HttpResponse {
+    if PROFILING.swap(true, Ordering::SeqCst) {
+        return HttpResponse::BadRequest().body("Profiling already started");
+    }
+
+    let guard = pprof::ProfilerGuard::new(100).unwrap();
+    *profiler.lock().unwrap() = Some(guard);
+
+    HttpResponse::Ok().body("Profiling started")
+}
+
+async fn stop_profile(profiler: web::Data<Arc<std::sync::Mutex<Option<ProfilerGuard<'static>>>>>) -> HttpResponse {
+    if !PROFILING.swap(false, Ordering::SeqCst) {
+        return HttpResponse::BadRequest().body("Profiling was not running");
+    }
+
+    let guard = profiler.lock().unwrap().take().unwrap();
+
+    if let Ok(report) = guard.report().build() {
+        let file = std::fs::File::create("profile.svg").unwrap();
+        report.flamegraph(file).unwrap();
+    }
+
+    HttpResponse::Ok().body("Profiling stopped and data saved")
 }
