@@ -53,6 +53,7 @@ pub trait OrderRepository {
         status: Option<String>,
         area: Option<i32>,
     ) -> Result<Vec<OrderWithDetails>, AppError>;
+    async fn get_order_by_id(&self, id: i32) -> Result<OrderDto, sqlx::Error>;
 }
 
 #[derive(Debug)]

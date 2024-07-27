@@ -1,4 +1,5 @@
 use crate::domains::order_service::OrderRepository;
+use crate::domains::dto::order::OrderDto;
 use crate::errors::AppError;
 use crate::domains::dto::order::OrderWithDetails;
 use crate::models::order::{CompletedOrder, Order};
@@ -307,6 +308,47 @@ async fn get_paginated_orders_with_details(
 
         Ok(orders)
     }
+
+    async fn get_order_by_id(&self, id: i32) -> Result<OrderDto, sqlx::Error> {
+        let sql = format!(
+            "SELECT 
+                o.id, 
+                o.client_id, 
+                c.username as client_username,
+                o.dispatcher_id, 
+                d.user_id as dispatcher_user_id,
+                du.username as dispatcher_username,
+                o.tow_truck_id, 
+                t.driver_id as driver_user_id,
+                dr.username as driver_username,
+                o.status, 
+                o.node_id, 
+                n.area_id,
+                o.car_value, 
+                o.order_time, 
+                o.completed_time
+            FROM
+                orders o
+            LEFT JOIN
+                nodes n ON o.node_id = n.id
+            LEFT JOIN
+                users c ON o.client_id = c.id
+            LEFT JOIN
+                dispatchers d ON o.dispatcher_id = d.id
+            LEFT JOIN
+                users du ON d.user_id = du.id
+            LEFT JOIN
+                tow_trucks t ON o.tow_truck_id = t.id
+            LEFT JOIN
+                users dr ON t.driver_id = dr.id
+            WHERE o.id = $1"
+        );
+
+        let order = sqlx::query_as::<_, OrderDto>(&sql)
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok(order)
+    }
 }
-
-
