@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
 use crate::models::order::CompletedOrder;
 
@@ -46,6 +47,26 @@ pub struct OrderDto {
     pub order_time: DateTime<Utc>,
     pub completed_time: Option<DateTime<Utc>>,
 }
+
+#[derive(FromRow, Serialize, Debug)]
+pub struct OrderWithDetails {
+    pub id: i32,
+    pub client_id: i32,
+    pub client_username: String,
+    pub dispatcher_id: Option<i32>,
+    pub dispatcher_user_id: Option<i32>,
+    pub dispatcher_username: Option<String>,
+    pub tow_truck_id: Option<i32>,
+    pub driver_user_id: Option<i32>,
+    pub driver_username: Option<String>,
+    pub status: String,
+    pub node_id: i32,
+    pub area_id: i32,
+    pub car_value: f64,
+    pub order_time: chrono::DateTime<chrono::Utc>,
+    pub completed_time: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 
 #[derive(Serialize, Debug)]
 pub struct CompletedOrderDto {

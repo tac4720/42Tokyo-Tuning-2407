@@ -1,5 +1,6 @@
 use crate::domains::order_service::OrderRepository;
 use crate::errors::AppError;
+use crate::domains::dto::order::OrderWithDetails;
 use crate::models::order::{CompletedOrder, Order};
 use chrono::{DateTime, Utc};
 use sqlx::mysql::MySqlPool;
@@ -197,4 +198,115 @@ impl OrderRepository for OrderRepositoryImpl {
 
         Ok(orders)
     }
+
+// repository
+async fn get_paginated_orders_with_details(
+        &self,
+        page: i32,
+        page_size: i32,
+        sort_by: Option<String>,
+        sort_order: Option<String>,
+        status: Option<String>,
+        area: Option<i32>,
+    ) -> Result<Vec<OrderWithDetails>, AppError> {
+        let offset = page * page_size;
+        let order_clause = format!(
+            "ORDER BY {} {}",
+            match sort_by.as_deref() {
+                Some("car_value") => "o.car_value",
+                Some("status") => "o.status",
+                Some("order_time") => "o.order_time",
+                _ => "o.order_time",
+            },
+            match sort_order.as_deref() {
+                Some("DESC") => "DESC",
+                Some("desc") => "DESC",
+                _ => "ASC",
+            }
+        );
+
+        let where_clause = match (status.clone(), area) {
+            (Some(_), Some(_)) => "WHERE o.status = ? AND n.area_id = ?".to_string(),
+            (None, Some(_)) => "WHERE n.area_id = ?".to_string(),
+            (Some(_), None) => "WHERE o.status = ?".to_string(),
+            _ => "".to_string(),
+        };
+
+        let sql = format!(
+            "SELECT 
+                o.id, 
+                o.client_id, 
+                c.username as client_username,
+                o.dispatcher_id, 
+                d.user_id as dispatcher_user_id,
+                du.username as dispatcher_username,
+                o.tow_truck_id, 
+                t.driver_id as driver_user_id,
+                dr.username as driver_username,
+                o.status, 
+                o.node_id, 
+                n.area_id,
+                o.car_value, 
+                o.order_time, 
+                o.completed_time
+            FROM
+                orders o
+            LEFT JOIN
+                nodes n ON o.node_id = n.id
+            LEFT JOIN
+                users c ON o.client_id = c.id
+            LEFT JOIN
+                dispatchers d ON o.dispatcher_id = d.id
+            LEFT JOIN
+                users du ON d.user_id = du.id
+            LEFT JOIN
+                tow_trucks t ON o.tow_truck_id = t.id
+            LEFT JOIN
+                users dr ON t.driver_id = dr.id
+            {} 
+            {} 
+            LIMIT ? 
+            OFFSET ?",
+            where_clause, order_clause
+        );
+
+        let orders = match (status, area) {
+            (Some(status), Some(area)) => {
+                sqlx::query_as::<_, OrderWithDetails>(&sql)
+                    .bind(status)
+                    .bind(area)
+                    .bind(page_size)
+                    .bind(offset)
+                    .fetch_all(&self.pool)
+                    .await?
+            }
+            (None, Some(area)) => {
+                sqlx::query_as::<_, OrderWithDetails>(&sql)
+                    .bind(area)
+                    .bind(page_size)
+                    .bind(offset)
+                    .fetch_all(&self.pool)
+                    .await?
+            }
+            (Some(status), None) => {
+                sqlx::query_as::<_, OrderWithDetails>(&sql)
+                    .bind(status)
+                    .bind(page_size)
+                    .bind(offset)
+                    .fetch_all(&self.pool)
+                    .await?
+            }
+            _ => {
+                sqlx::query_as::<_, OrderWithDetails>(&sql)
+                    .bind(page_size)
+                    .bind(offset)
+                    .fetch_all(&self.pool)
+                    .await?
+            }
+        };
+
+        Ok(orders)
+    }
 }
+
+
