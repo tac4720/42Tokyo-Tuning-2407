@@ -165,7 +165,7 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
         };
 
         let path: PathBuf =
-            Path::new(&format!("images/user_profile/{}", profile_image_name)).to_path_buf();
+            Path::new(&format!("images/CompressionImages2/{}", profile_image_name)).to_path_buf();
 
         let output = Command::new("magick")
             .arg(&path)
