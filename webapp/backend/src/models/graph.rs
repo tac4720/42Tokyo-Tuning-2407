@@ -77,20 +77,28 @@ impl Graph {
             return cached_distance;
         }
 
+        let distance = self.dijkstra(from_node_id, to_node_id);
+        self.cache.insert((from_node_id, to_node_id), distance);
+        distance
+    }
+
+    fn dijkstra(&self, start: i32, goal: i32) -> i32 {
         let mut distances = HashMap::new();
         let mut heap = BinaryHeap::new();
+        let mut visited = HashMap::new();
 
-        distances.insert(from_node_id, 0);
-        heap.push(State { cost: 0, position: from_node_id });
+        distances.insert(start, 0);
+        heap.push(State { cost: 0, position: start });
 
         while let Some(State { cost, position }) = heap.pop() {
-            if position == to_node_id {
-                self.cache.insert((from_node_id, to_node_id), cost);
+            if position == goal {
                 return cost;
             }
 
-            if cost > *distances.get(&position).unwrap_or(&i32::MAX) {
-                continue;
+            if let Some(&visited_cost) = visited.get(&position) {
+                if cost > visited_cost {
+                    continue;
+                }
             }
 
             if let Some(edges) = self.edges.get(&position) {
@@ -106,9 +114,10 @@ impl Graph {
                     }
                 }
             }
+
+            visited.insert(position, cost);
         }
 
-        self.cache.insert((from_node_id, to_node_id), i32::MAX);
         i32::MAX
     }
 }
