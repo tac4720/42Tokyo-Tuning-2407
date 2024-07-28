@@ -104,7 +104,8 @@ pub async fn get_nearest_available_tow_trucks(
         let mut tow_trucks_with_distance: Vec<_> = tow_trucks
             .into_iter()
             .map(|truck| {
-                let distance = calculate_distance(&graph, truck.node_id, order.node_id);
+                // let distance = calculate_distance(&graph, truck.node_id, order.node_id);
+                let distance = graph.shortest_path(truck.node_id, order.node_id);
                 (distance, truck)
             })
             .collect();
@@ -126,6 +127,6 @@ pub async fn get_nearest_available_tow_trucks(
 }
 }
 
-fn calculate_distance(graph: &Graph, node_id_1: i32, node_id_2: i32) -> i32 {
-    graph.shortest_path(node_id_1, node_id_2)
-}
+// fn calculate_distance(graph: &Graph, node_id_1: i32, node_id_2: i32) -> i32 {
+//     graph.shortest_path(node_id_1, node_id_2)
+// }
