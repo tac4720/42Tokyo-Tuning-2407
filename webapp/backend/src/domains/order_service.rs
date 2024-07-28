@@ -12,6 +12,7 @@ use crate::{
     models::order::{CompletedOrder, Order},
 };
 
+
 use futures::future::{ready, join_all, join};
 
 pub trait OrderRepository {
