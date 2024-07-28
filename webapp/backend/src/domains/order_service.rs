@@ -12,6 +12,8 @@ use crate::{
     models::order::{CompletedOrder, Order},
 };
 
+use futures::future::{ready, join_all, join};
+
 pub trait OrderRepository {
     async fn find_order_by_id(&self, id: i32) -> Result<Order, AppError>;
     async fn update_order_status(&self, order_id: i32, status: &str) -> Result<(), AppError>;
