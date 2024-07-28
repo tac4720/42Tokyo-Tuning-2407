@@ -20,6 +20,7 @@ pub struct Edge {
 pub struct Graph {
     pub nodes: HashMap<i32, Node>,
     pub edges: HashMap<i32, Vec<Edge>>,
+    pub cache: HashMap<(i32, i32), i32>, // 最短経路のキャッシュ
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -46,6 +47,7 @@ impl Graph {
         Graph {
             nodes: HashMap::new(),
             edges: HashMap::new(),
+            cache: HashMap::new(),
         }
     }
 
@@ -70,7 +72,11 @@ impl Graph {
             .push(reverse_edge);
     }
 
-    pub fn shortest_path(&self, from_node_id: i32, to_node_id: i32) -> i32 {
+    pub fn shortest_path(&mut self, from_node_id: i32, to_node_id: i32) -> i32 {
+        if let Some(&cached_distance) = self.cache.get(&(from_node_id, to_node_id)) {
+            return cached_distance;
+        }
+
         let mut distances = HashMap::new();
         let mut heap = BinaryHeap::new();
 
@@ -78,7 +84,10 @@ impl Graph {
         heap.push(State { cost: 0, position: from_node_id });
 
         while let Some(State { cost, position }) = heap.pop() {
-            if position == to_node_id { return cost; }
+            if position == to_node_id {
+                self.cache.insert((from_node_id, to_node_id), cost);
+                return cost;
+            }
 
             if cost > *distances.get(&position).unwrap_or(&i32::MAX) {
                 continue;
@@ -99,6 +108,7 @@ impl Graph {
             }
         }
 
+        self.cache.insert((from_node_id, to_node_id), i32::MAX);
         i32::MAX
     }
 }
