@@ -22,3 +22,5 @@ ALTER TABLE tow_trucks ADD INDEX index_area_id(area_id);
 ALTER TABLE tow_trucks ADD INDEX index_status(status);
 
 ALTER TABLE edges ADD INDEX index_weight(weight);
+
+UPDATE users SET password = '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8';

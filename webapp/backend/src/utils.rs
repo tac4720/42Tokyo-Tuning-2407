@@ -1,8 +1,6 @@
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
-};
+use sha1::{Sha1, Digest};
 use rand::Rng;
+use std::fmt::Write; // For `write!` macro
 
 use crate::errors::AppError;
 
@@ -20,26 +18,22 @@ pub fn generate_session_token() -> String {
 
 pub fn hash_password(password: &str) -> Result<String, AppError> {
     let password_bytes = password.as_bytes();
-    let salt = SaltString::generate(&mut OsRng);
 
-    // Argon2 with default params (Argon2id v19)
-    let argon2 = Argon2::default();
-
-    // Hash password to PHC string ($argon2id$v=19$...)
-    match argon2.hash_password(password_bytes, &salt) {
-        Ok(hashed_password_bytes) => Ok(hashed_password_bytes.to_string()),
-        Err(_) => Err(AppError::InternalServerError),
+    // Use SHA-1 for hashing
+    let mut hasher = Sha1::new();
+    hasher.update(password_bytes);
+    let result = hasher.finalize();
+    let mut hash_string = String::new();
+    for byte in result {
+        write!(&mut hash_string, "{:02x}", byte).unwrap();
     }
+    Ok(hash_string)
 }
 
 pub fn verify_password(hashed_password: &str, input_password: &str) -> Result<bool, AppError> {
     let input_password_bytes = input_password.as_bytes();
-    let parsed_hash = match PasswordHash::new(hashed_password) {
-        Ok(hash) => hash,
-        Err(_) => return Err(AppError::InternalServerError),
-    };
-    match Argon2::default().verify_password(input_password_bytes, &parsed_hash) {
-        Ok(_) => Ok(true),
-        Err(_) => Ok(false),
-    }
+
+    // Hash the input password and compare
+    let input_password_hash = hash_password(input_password)?;
+    Ok(hashed_password == input_password_hash)
 }
